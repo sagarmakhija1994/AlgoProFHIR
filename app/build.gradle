@@ -8,7 +8,7 @@ android {
 
     defaultConfig {
         applicationId "com.sagarmakhija1994.algoprofhir"
-        minSdk 21
+        minSdk 26
         targetSdk 32
         versionCode 1
         versionName "1.0"
@@ -29,6 +29,10 @@ android {
     kotlinOptions {
         jvmTarget = '1.8'
     }
+
+    packagingOptions {
+        resources.excludes.add("META-INF/*")
+    }
 }
 
 dependencies {
@@ -42,7 +46,9 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
 
     //FHIR
-    implementation("com.google.android.fhir:data-capture:0.1.0-beta06")
+    /*implementation("com.google.android.fhir:data-capture:0.1.0-beta06"){
+        exclude group: 'androidx.lifecycle.ViewModelLazy', module: 'jetified-lifecycle-viewmodel-ktx-2.3.0-runtime'
+    }*/
     implementation("com.google.android.fhir:engine:0.1.0-beta02")
     implementation("com.google.android.fhir:workflow:0.1.0-alpha02")
 
