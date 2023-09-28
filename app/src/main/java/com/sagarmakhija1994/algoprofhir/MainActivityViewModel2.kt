@@ -1,61 +1,41 @@
 package com.sagarmakhija1994.algoprofhir
 
-
 import android.app.Application
 import android.content.Context
-import android.text.format.DateFormat
-import android.util.Log
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.*
 import androidx.work.Constraints
 import com.google.android.fhir.FhirEngine
+import com.google.android.fhir.LocalChange
+import com.google.android.fhir.db.impl.dao.LocalChangeToken
+
 import com.google.android.fhir.search.Order
 import com.google.android.fhir.search.Search
 import com.google.android.fhir.search.StringFilterModifier
-import com.google.android.fhir.search.search
-import com.sagarmakhija1994.algoprofhir.worker.FhirSyncWorker
-import com.google.android.fhir.sync.PeriodicSyncConfiguration
-import com.google.android.fhir.sync.RepeatInterval
-import com.google.android.fhir.sync.Sync
-//import com.google.android.fhir.sync.SyncJobStatus
 import com.sagarmakhija1994.algoprofhir.model.PatientItem
-import java.time.format.DateTimeFormatter
-import java.util.concurrent.TimeUnit
-import kotlinx.coroutines.InternalCoroutinesApi
+import org.hl7.fhir.r4.model.Patient
+import com.google.android.fhir.search.search
+import com.google.android.fhir.sync.*
+import com.sagarmakhija1994.algoprofhir.data.FhirPeriodicSyncWorker
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.launch
-import okhttp3.internal.notifyAll
-import org.hl7.fhir.r4.model.Patient
+import org.hl7.fhir.r4.model.Resource
 import org.hl7.fhir.r4.model.RiskAssessment
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.*
 
-@OptIn(InternalCoroutinesApi::class)
-class MainActivityViewModel(application: Application) : AndroidViewModel(application) {
-    init {
-        viewModelScope.launch {
-            Sync.periodicSync<FhirSyncWorker>(
-                application.applicationContext,
-                PeriodicSyncConfiguration(
-                    syncConstraints = Constraints.Builder().build(),
-                    repeat = RepeatInterval(interval = 15, timeUnit = TimeUnit.MINUTES)
-                )
-            )
-                //.shareIn(this, SharingStarted.Eagerly, 10)
-                //.collect { /*_pollState.emit(it)*/ }
-        }
-    }
+import kotlinx.coroutines.flow.shareIn
+import java.util.concurrent.TimeUnit
+
+class MainActivityViewModel2(application: Application): AndroidViewModel(application) {
 
     lateinit var fhirEngine:FhirEngine
     var patientItemList=MutableLiveData<List<PatientItem>>()
     var lastPatientSearchQuery = ""
 
-    fun initFHIR(fhirEngine: FhirEngine){
+    fun initFHIR(fhirEngine:FhirEngine){
         this.fhirEngine = fhirEngine
     }
 
@@ -80,7 +60,7 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
                         }
                     )
                 }
-                filterCity(this)
+//                filterCity(this)
                 sort(Patient.GIVEN, Order.ASCENDING)
                 count = 100000
                 from = 0
@@ -101,44 +81,14 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
         search.filter(Patient.ADDRESS_CITY, { value = "MUMBAI" })
     }
 
-    fun sync(context: Context){
-        viewModelScope.launch {
-            val syncObj = Sync.periodicSync<FhirSyncWorker>(
-                context,
-                PeriodicSyncConfiguration(
-                    syncConstraints = Constraints.Builder().build(),
-                    repeat = RepeatInterval(interval = 15, timeUnit = TimeUnit.MINUTES)
-                )
-            )
-            syncObj.let {
-                Log.e("Sync Status:","let")
-                it.runCatching {
-                    Log.e("Sync Status:","run catching")
-                }
-                it.run {
-                    Log.e("Sync Status:","run")
-                }
-                it.apply {
-                    Log.e("Sync Status:","apply")
-                }
-                synchronized(it){
-                    it.notifyAll()
-                }
-            }
-
-
-
-            //.shareIn(this, SharingStarted.Eagerly, 10)
-            //.collect { /*_pollState.emit(it)*/ }
-        }
-
-        //Sync.oneTimeSync<com.google.android.fhir.sync.FhirSyncWorker>(getApplication())
+    fun sync(){
+        Sync.oneTimeSync<FhirSyncWorker>(getApplication())
         //viewModelScope.launch {
-        //Sync.basicSyncJob(getApplication())
-        //val downloadManager: DownloadWorkManager
-        //val resolver: ConflictResolver
-        //Sync.oneTimeSync(getApplication(), fhirEngine, downloadManager, resolver)
-        //Sync.oneTimeSync<FhirSyncWorker>(getApplication())
+            //Sync.basicSyncJob(getApplication())
+            //val downloadManager: DownloadWorkManager
+            //val resolver: ConflictResolver
+            //Sync.oneTimeSync(getApplication(), fhirEngine, downloadManager, resolver)
+            //Sync.oneTimeSync<FhirSyncWorker>(getApplication())
         //}
     }
 
@@ -182,16 +132,18 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
 
 
 
-    fun addPatientPatient(patient: Patient){
+    fun addPatientPatient(patient:Patient){
         viewModelScope.launch {
             savePatient(patient)
         }
     }
 
-    private fun savePatient(patient: Patient) {
+    private fun savePatient(patient:Patient) {
         viewModelScope.launch {
             patient.id = UUID.randomUUID().toString()
             fhirEngine.create(patient)
         }
     }
+
+
 }
